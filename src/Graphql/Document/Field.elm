@@ -4,64 +4,49 @@ import Graphql.Document.Argument as Argument
 import Graphql.Document.Indent as Indent
 import Graphql.RawField exposing (RawField(..))
 import List.Extra
-import Murmur3
+
+
+
+-- import Murmur3
 
 
 hashedAliasName : RawField -> String
 hashedAliasName field =
-    field
-        |> alias
-        |> Maybe.withDefault (Graphql.RawField.name field)
+    -- field
+    --     |> alias
+    --     |> Maybe.withDefault (Graphql.RawField.name field)
+    Graphql.RawField.name field
 
 
-maybeAliasHash : RawField -> Maybe String
-maybeAliasHash field =
-    (case field of
-        Composite name arguments children ->
-            if List.isEmpty arguments then
-                Nothing
 
-            else
-                arguments
-                    |> Argument.serialize
-                    |> Just
-
-        Leaf { typeString, fieldName } arguments ->
-            arguments
-                |> Argument.serialize
-                |> List.singleton
-                |> List.append [ typeString ]
-                |> String.concat
-                |> Just
-    )
-        |> Maybe.map (Murmur3.hashString 0 >> String.fromInt)
-
-
-alias : RawField -> Maybe String
-alias field =
-    field
-        |> maybeAliasHash
-        |> Maybe.map (\aliasHash -> Graphql.RawField.name field ++ aliasHash)
+-- maybeAliasHash : RawField -> Maybe String
+-- maybeAliasHash field =
+--     (case field of
+--         Composite name arguments children ->
+--             if List.isEmpty arguments then
+--                 Nothing
+--             else
+--                 arguments
+--                     |> Argument.serialize
+--                     |> Just
+--         Leaf { typeString, fieldName } arguments ->
+--             arguments
+--                 |> Argument.serialize
+--                 |> List.singleton
+--                 |> List.append [ typeString ]
+--                 |> String.concat
+--                 |> Just
+--     )
+--         |> Maybe.map (Murmur3.hashString 0 >> String.fromInt)
+-- alias : RawField -> Maybe String
+-- alias field =
+--     field
+--         |> maybeAliasHash
+--         |> Maybe.map (\aliasHash -> Graphql.RawField.name field ++ aliasHash)
 
 
-serialize : Maybe String -> Maybe Int -> RawField -> Maybe String
-serialize aliasName mIndentationLevel field =
-    let
-        prefix =
-            case aliasName of
-                Just aliasName_ ->
-                    aliasName_
-                        ++ (case mIndentationLevel of
-                                Just _ ->
-                                    ": "
-
-                                Nothing ->
-                                    ":"
-                           )
-
-                Nothing ->
-                    ""
-    in
+serialize : Maybe Int -> RawField -> Maybe String
+serialize mIndentationLevel field =
     (case field of
         Composite fieldName args children ->
             case mIndentationLevel of
@@ -91,7 +76,6 @@ serialize aliasName mIndentationLevel field =
         |> Maybe.map
             (\string ->
                 Indent.generate (mIndentationLevel |> Maybe.withDefault 0)
-                    ++ prefix
                     ++ string
             )
 
@@ -102,7 +86,7 @@ serializeChildren indentationLevel children =
         |> nonemptyChildren
         |> List.indexedMap
             (\index field ->
-                serialize (alias field) (indentationLevel |> Maybe.map ((+) 1)) field
+                serialize (indentationLevel |> Maybe.map ((+) 1)) field
             )
         |> List.filterMap identity
         |> String.join
